@@ -169,6 +169,45 @@ export class LLMChatPipeline {
    * Generate the first token given input prompt
    */
   async prefillStep(inp: string): Promise<void> {
+    this.prefillCleanup();
+
+    const conversation = this.conversation;
+    const promptTokens = this.getInputTokens();
+
+    const tstart = performance.now();
+
+    conversation.appendMessage(conversation.config.roles[0], inp);
+    conversation.appendReplyHeader(conversation.config.roles[1]);
+
+    const logits = this.processTokens(promptTokens);
+    
+    const nextToken = await this.sampleTokenFromLogits(
+      logits, this.config.temperature, this.config.top_p);
+    logits.dispose();
+    const tend = performance.now();
+
+    this.prefillTotalTime += (tend - tstart) / 1e3;
+    this.prefillTotalTokens += promptTokens.length;
+
+    this.processNextToken(nextToken);
+  }
+
+  /**
+   * Add and process existing messages for future input context
+   */
+  async prefillStepConversation(existingMessages: Required<ChatConfig>['existingMessages']): Promise<void> {
+    this.prefillCleanup();
+  
+    const conversation = this.conversation;
+    existingMessages.forEach((message) => {
+      conversation.appendMessage(conversation.config.roles[Number(message.role === 'ai')], message.text);
+    });
+
+    const existingTokens = this.getInputTokens();
+    this.processTokens(existingTokens);
+  }
+
+  private prefillCleanup() {
     if (this.resetStatsPerPrefill) {
       this.resetRuntimeStats();
     }
@@ -178,24 +217,19 @@ export class LLMChatPipeline {
     this.appearedTokens.clear();
     this.outputMessage = "";
     this.stopTriggered = false;
-    const conversation = this.conversation;
+  }
 
-    // initialize
-    conversation.appendMessage(conversation.config.roles[0], inp);
-    conversation.appendReplyHeader(conversation.config.roles[1]);
-    const promptTokens = this.getInputTokens();
-
-    const tstart = performance.now();
+  private processTokens(tokens: number[]) {
     this.tvm.beginScope();
 
     let newSeqLen = this.filledKVCacheLength;
-    const tokenLen = promptTokens.length;
+    const tokenLen = tokens.length;
     let logits = this.tvm.empty([1, 1], "int32", this.device);  // Dummy value to avoid type error
     if (this.slidingWindow != -1) {
       // Use chunking if we use sliding window attention (see Mistral paper figure 3)
       for (let begin = 0; begin < tokenLen; begin += this.slidingWindowChunkSize) {
         const end = Math.min(tokenLen, begin + this.slidingWindowChunkSize);
-        const chunk = promptTokens.slice(begin, end);
+        const chunk = tokens.slice(begin, end);
         const inputData = this.tvm.empty([1, chunk.length], "int32", this.device);
         inputData.copyFrom(chunk);
         newSeqLen += chunk.length;
@@ -208,8 +242,8 @@ export class LLMChatPipeline {
       }
     } else {
       // Otherwise, prefill entire prompt at once
-      const inputData = this.tvm.empty([1, promptTokens.length], "int32", this.device);
-      inputData.copyFrom(promptTokens);
+      const inputData = this.tvm.empty([1, tokens.length], "int32", this.device);
+      inputData.copyFrom(tokens);
       newSeqLen += tokenLen;
       logits = this.tvm.detachFromCurrentScope(
         this.forward(inputData, newSeqLen)
@@ -218,15 +252,7 @@ export class LLMChatPipeline {
     this.filledKVCacheLength = newSeqLen;
     this.tvm.endScope();
 
-    const nextToken = await this.sampleTokenFromLogits(
-      logits, this.config.temperature, this.config.top_p);
-    logits.dispose();
-    const tend = performance.now();
-
-    this.prefillTotalTime += (tend - tstart) / 1e3;
-    this.prefillTotalTokens += promptTokens.length;
-
-    this.processNextToken(nextToken);
+    return logits;
   }
 
   async decodeStep(): Promise<void> {
