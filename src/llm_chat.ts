@@ -172,12 +172,12 @@ export class LLMChatPipeline {
     this.prefillCleanup();
 
     const conversation = this.conversation;
-    const promptTokens = this.getInputTokens();
-
-    const tstart = performance.now();
 
     conversation.appendMessage(conversation.config.roles[0], inp);
     conversation.appendReplyHeader(conversation.config.roles[1]);
+    const promptTokens = this.getInputTokens();
+
+    const tstart = performance.now();
 
     const logits = this.processTokens(promptTokens);
     
