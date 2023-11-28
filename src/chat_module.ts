@@ -23,7 +23,7 @@ export class ChatModule implements ChatInterface {
     this.initProgressCallback = initProgressCallback;
   }
 
-  async reload(localId: string, chatOpts?: ChatOptions, appConfig?: AppConfig): Promise<void> {
+  async reload(localId: string, chatOpts?: ChatOptions, appConfig?: AppConfig, files?: File[] | FileList): Promise<File[]> {
     this.unload();
     const tstart = performance.now();
     if (appConfig === undefined) {
@@ -46,12 +46,15 @@ export class ChatModule implements ChatInterface {
     }
     const configCache = new tvmjs.ArtifactCache("webllm/config");
 
+    let responseFiles: File[] = [];
+    const filesArr = files ? Array.from(files) : undefined;
+
     // load config
     const configUrl = new URL("mlc-chat-config.json", modelUrl).href;
-    const config = {
-      ...(await (await configCache.fetchWithCache(configUrl)).json()),
-      ...chatOpts
-    } as ChatConfig;
+    const {file: mlcConfigFile, data: mlcConfigJSON} = await configCache.fetchFileWithCache(configUrl, filesArr);
+    responseFiles.push(mlcConfigFile);
+    
+    const config = {...mlcConfigJSON, ...chatOpts} as ChatConfig;
 
     const findWasmUrl = () => {
       if (appConfig?.model_lib_map !== undefined) {
@@ -77,7 +80,9 @@ export class ChatModule implements ChatInterface {
         return await fetch(new URL(wasmUrl, baseUrl).href);
       } else {
         // use cache
-        return await wasmCache.fetchWithCache(wasmUrl);
+        const {file} = await wasmCache.fetchFileWithCache(wasmUrl, filesArr);
+        responseFiles.push(file);
+        return file;
       }
     };
     const wasmSource = await (await fetchWasmSource()).arrayBuffer();
@@ -139,14 +144,20 @@ export class ChatModule implements ChatInterface {
     }
 
     tvm.initWebGPU(gpuDetectOutput.device);
-    const tokenizer = await this.asyncLoadTokenizer(modelUrl, config);
-    await tvm.fetchNDArrayCache(modelUrl, tvm.webgpu(), "webllm/model");
-
+    const {tokenizer, file} = await this.asyncLoadTokenizer(modelUrl, config, filesArr);
+    responseFiles.push(file);
+    const resultFiles = await tvm.fetchNDArrayCache(modelUrl, tvm.webgpu(), "webllm/model", filesArr);
+    responseFiles = responseFiles.concat(resultFiles)
     this.pipeline = new LLMChatPipeline(tvm, tokenizer, config);
     await this.pipeline?.asyncLoadWebGPUPipelines();
 
     const tend = performance.now();
 
+    // add existing conversation for context
+    if (config.existingMessages && config.existingMessages.length > 0) {
+      await this.getPipeline().prefillStepConversation(config.existingMessages);
+    }
+  
     if (this.initProgressCallback !== undefined) {
       const text = "Finish loading on " + gpuLabel;
       this.initProgressCallback({
@@ -155,6 +166,7 @@ export class ChatModule implements ChatInterface {
         text: text
       })
     }
+    return responseFiles;
   }
 
   async generate(
@@ -240,17 +252,18 @@ export class ChatModule implements ChatInterface {
 
   private async asyncLoadTokenizer(
     baseUrl: string,
-    config: ChatConfig
-  ): Promise<Tokenizer> {
+    config: ChatConfig,
+    files?: File[],
+  ): Promise<{tokenizer: Tokenizer, file: File}> {
     const modelCache = new tvmjs.ArtifactCache("webllm/model");
     if (config.tokenizer_files.includes("tokenizer.model")) {
       const url = new URL("tokenizer.model", baseUrl).href;
-      const model = await (await modelCache.fetchWithCache(url)).arrayBuffer();
-      return Tokenizer.fromSentencePiece(model);
+      const {file, data} = await modelCache.fetchFileWithCache(url, files);
+      return {tokenizer: await Tokenizer.fromSentencePiece(data), file};
     } else if (config.tokenizer_files.includes("tokenizer.json")) {
       const url = new URL("tokenizer.json", baseUrl).href;
-      const model = await (await modelCache.fetchWithCache(url)).arrayBuffer();
-      return Tokenizer.fromJSON(model);
+      const {file, data} = await modelCache.fetchFileWithCache(url, files);
+      return {tokenizer: await Tokenizer.fromJSON(data), file};
     }
     throw Error("Cannot handle tokenizer files " + config.tokenizer_files)
   }
@@ -267,7 +280,7 @@ export class ChatRestModule implements ChatInterface {
     this.initProgressCallback = initProgressCallback;
   }
 
-  async reload(localId: string, chatOpts?: ChatOptions, appConfig?: AppConfig): Promise<void> {
+  async reload(localId: string, chatOpts?: ChatOptions, appConfig?: AppConfig): Promise<File[]> {
     throw new Error("Method not implemented.");
   }
 
@@ -296,7 +309,7 @@ export class ChatRestModule implements ChatInterface {
       })
         .then((response) => response.json())
         .then((json) => {
-          let msg = json["choices"][0]["message"]["content"] as string;
+          const msg = json["choices"][0]["message"]["content"] as string;
           if (progressCallback !== undefined) {
             progressCallback(0, msg);
           }
@@ -304,7 +317,7 @@ export class ChatRestModule implements ChatInterface {
         });
       return response;
     } else {
-      var msg = "";
+      let msg = "";
       const response = await fetch('http://localhost:8000/v1/chat/completions', {
         method: "POST",
         headers: { "Content-type": "application/json" },
@@ -371,6 +384,6 @@ export async function hasModelInCache(localId: string, appConfig?: AppConfig): P
     throw Error("Cannot find model_url for " + localId);
   }
   const modelRecord = findModelRecord();
-  let modelUrl = modelRecord.model_url;
+  const modelUrl = modelRecord.model_url;
   return tvmjs.hasNDArrayInCache(modelUrl, "webllm/model");
 }

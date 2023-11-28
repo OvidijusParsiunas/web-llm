@@ -1,0 +1,7 @@
+source ~/Desktop/open-source/emsdk/emsdk_env.sh
+
+/web npm run bundle
+
+npm run build
+
+/examples/next-simple-chat npm run dev

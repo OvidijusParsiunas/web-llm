@@ -49,7 +49,7 @@ export interface ChatInterface {
    * @returns A promise when reload finishes.
    * @note This is an async function.
    */
-  reload: (localIdOrUrl: string, chatOpts?: ChatOptions, appConfig?: AppConfig) => Promise<void>;
+  reload: (localIdOrUrl: string, chatOpts?: ChatOptions, appConfig?: AppConfig, files?: File[] | FileList) => Promise<File[] | void>;
 
   /**
    * Generate a response for a given input.
