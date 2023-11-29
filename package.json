@@ -1,6 +1,6 @@
 {
-  "name": "@mlc-ai/web-llm",
-  "version": "0.2.10",
+  "name": "deep-chat-web-llm",
+  "version": "0.0.1",
   "description": "Hardware accelerated language model chats on browsers",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -14,7 +14,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mlc-ai/web-llm"
+    "url": "https://github.com/OvidijusParsiunas/web-llm"
   },
   "keywords": [
     "llm",
@@ -22,7 +22,7 @@
     "machine learning"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://github.com/mlc-ai/web-llm",
+  "homepage": "https://github.com/OvidijusParsiunas/web-llm",
   "devDependencies": {
     "@mlc-ai/web-tokenizers": "^0.1.2",
     "@rollup/plugin-commonjs": "^20.0.0",
