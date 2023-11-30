@@ -1,7 +1,8 @@
-source ~/Desktop/open-source/emsdk/emsdk_env.sh
-
 /web npm run bundle
 
 npm run build
 
 /examples/next-simple-chat npm run dev
+
+require("perf_hooks") has been commented out because it causes the following error when this component is used in apps like React:
+Module not found: Error: Can't resolve 'perf_hooks' in '/Users/ovidijusparsiunas/Desktop/ai-chat/example-servers/ui/node_modules/deep-chat-web-llm/lib'
