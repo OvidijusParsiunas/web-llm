@@ -11,7 +11,7 @@ export interface ChatOptions extends Partial<ChatConfig> {}
  */
 export interface InitProgressReport {
   progress: number;
-  timeElapsed: number;
+  // timeElapsed: number;
   text: string;
 }
 

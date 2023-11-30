@@ -151,18 +151,18 @@ export class ChatModule implements ChatInterface {
     this.pipeline = new LLMChatPipeline(tvm, tokenizer, config);
     await this.pipeline?.asyncLoadWebGPUPipelines();
 
-    const tend = performance.now();
+    // const tend = performance.now();
 
     // add existing conversation for context
-    if (config.existingMessages && config.existingMessages.length > 0) {
-      await this.getPipeline().prefillStepConversation(config.existingMessages);
+    if (config.conversationHistory && config.conversationHistory.length > 0) {
+      await this.getPipeline().prefillStepConversation(config.conversationHistory);
     }
   
     if (this.initProgressCallback !== undefined) {
       const text = "Finish loading on " + gpuLabel;
       this.initProgressCallback({
         progress: 1,
-        timeElapsed: (tend - tstart) / 1e3,
+        // timeElapsed: (tend - tstart) / 1e3,
         text: text
       })
     }

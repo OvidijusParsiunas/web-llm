@@ -195,16 +195,19 @@ export class LLMChatPipeline {
   /**
    * Add and process existing messages for future input context
    */
-  async prefillStepConversation(existingMessages: Required<ChatConfig>['existingMessages']): Promise<void> {
+  async prefillStepConversation(conversationHistory: Required<ChatConfig>['conversationHistory']): Promise<void> {
     this.prefillCleanup();
   
     const conversation = this.conversation;
-    existingMessages.forEach((message) => {
-      conversation.appendMessage(conversation.config.roles[Number(message.role === 'ai')], message.text);
+    conversationHistory.forEach((history) => {
+      if (history.length === 2) {
+        conversation.appendMessage(conversation.config.roles[0], history[0]);        
+        conversation.appendMessage(conversation.config.roles[1], history[1]);        
+      }
     });
 
-    const existingTokens = this.getInputTokens();
-    this.processTokens(existingTokens);
+    const historyTokens = this.getInputTokens(true);
+    this.processTokens(historyTokens);
   }
 
   private prefillCleanup() {
@@ -412,11 +415,12 @@ export class LLMChatPipeline {
     }
   }
 
-  private getInputTokens(): Array<number> {
+  private getInputTokens(isFullConversation?: boolean): Array<number> {
     let tokens: Array<number> = [];
     let prompts;
-    // beginning of the conversation
-    if (this.conversation.messages.length <= 2) {
+    if (isFullConversation) {
+      prompts = this.conversation.getPromptArray();
+    } else if (this.conversation.messages.length <= 2) {
       if (this.conversation.config.add_bos) {
         tokens = [this.bosTokenId];
       }

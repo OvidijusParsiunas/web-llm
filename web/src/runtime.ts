@@ -971,7 +971,7 @@ export interface NDArrayShardEntry {
 
 export interface InitProgressReport {
   progress: number;
-  timeElapsed: number;
+  // timeElapsed: number;
   cacheOnly: boolean;
   text: string;
 }
@@ -1124,7 +1124,7 @@ export class Instance implements Disposable {
    */
   async benchmark(run: () => void, dev: DLDevice, number = 10, repeat = 1): Promise<number[]> {
     // Skip first run as it can involve GPU warmup and module loading time.
-    const perf = compact.getPerformance();
+    // const perf = compact.getPerformance();
     const results = [];
 
     // run with new scope
@@ -1132,13 +1132,13 @@ export class Instance implements Disposable {
     await dev.sync();
 
     for (let k = 0; k < repeat; ++k) {
-      const tstart = perf.now();
+      // const tstart = perf.now();
       for (let i = 0; i < number; ++i) {
         this.withNewScope(run);
       }
       await dev.sync();
-      const tend = perf.now();
-      results.push((tend - tstart) / number);
+      // const tend = perf.now();
+      // results.push((tend - tstart) / number);
     }
     return results;
   }
@@ -1491,8 +1491,8 @@ export class Instance implements Disposable {
     artifactCache: ArtifactCache,
     files?: File[]
     ): Promise<File[]> {
-    const perf = compact.getPerformance();
-    const tstart = perf.now();
+    // const perf = compact.getPerformance();
+    // const tstart = perf.now();
     const responseFiles: File[] = [];
 
     let totalBytes = 0;
@@ -1500,7 +1500,7 @@ export class Instance implements Disposable {
       totalBytes += list[i].nbytes;
     }
     let fetchedBytes = 0;
-    let timeElapsed = 0;
+    // let timeElapsed = 0;
 
     const cacheOnly = await artifactCache.hasAllKeys(list.map(key => new URL(key.dataPath, ndarrayCacheUrl).href))
 
@@ -1509,20 +1509,20 @@ export class Instance implements Disposable {
       for (let j = 0; j < this.initProgressCallback.length; ++j) {
         let text = "Fetching param cache[" + iter + "/" + list.length + "]: ";
         text += Math.ceil(fetchedBytes / (1024 * 1024)).toString() + "MB fetched. "
-        text += Math.floor(fetchedBytes * 100 / totalBytes).toString() + "% completed, "
-        text += timeElapsed + " secs elapsed.";
+        text += Math.floor(fetchedBytes * 100 / totalBytes).toString() + "% completed."
+        // text += timeElapsed + " secs elapsed.";
         text += " It can take a while when we first visit this page to populate the cache."
         text += " Later refreshes will become faster.";
         if (file) text = "Loading model from file[" + iter + "/" + list.length + "]: ";
         if (cacheOnly) {
           if (!file) text = "Loading model from cache[" + iter + "/" + list.length + "]: ";
           text += Math.ceil(fetchedBytes / (1024 * 1024)).toString() + "MB loaded. "
-          text += Math.floor(fetchedBytes * 100 / totalBytes).toString() + "% completed, "
-          text += timeElapsed + " secs elapsed.";
+          text += Math.floor(fetchedBytes * 100 / totalBytes).toString() + "% completed."
+          // text += timeElapsed + " secs elapsed.";
         }
         this.initProgressCallback[j]({
           progress: fetchedBytes / totalBytes,
-          timeElapsed: timeElapsed,
+          // timeElapsed: timeElapsed,
           cacheOnly: cacheOnly,
           text: text
         });
@@ -1532,7 +1532,7 @@ export class Instance implements Disposable {
     for (let j = 0; j < this.initProgressCallback.length; ++j) {
       this.initProgressCallback[j]({
         progress: fetchedBytes / totalBytes,
-        timeElapsed: 0,
+        // timeElapsed: 0,
         cacheOnly: cacheOnly,
         text: "Start to fetch params",
       });
@@ -1582,7 +1582,7 @@ export class Instance implements Disposable {
           gpu_arr.dispose();
         }
       }
-      timeElapsed = Math.ceil((perf.now() - tstart) / 1000);
+      // timeElapsed = Math.ceil((perf.now() - tstart) / 1000);
     }
     reportCallback(list.length);
     return responseFiles;
@@ -1952,9 +1952,9 @@ export class Instance implements Disposable {
     );
     this.endScope();
 
-    const perf = compact.getPerformance();
-    const tstart = perf.now();
-    let tlastReport = tstart;
+    // const perf = compact.getPerformance();
+    // const tstart = perf.now();
+    // let tlastReport = tstart;
     let finishCounter = 0;
     const fmapEntries = Object.entries(fmap);
 
@@ -1970,23 +1970,23 @@ export class Instance implements Disposable {
 
       }).then(() => {
         finishCounter += 1;
-        const tend = perf.now();
+        // const tend = perf.now();
         const timeReportGap = 1000;
         // skip report if gap is smaller than 1000
-        if ((tend - tlastReport) < 1000 && finishCounter != fmapEntries.length) {
-          return;
-        }
-        tlastReport = tend;
-        const timeElapsed = Math.ceil((perf.now() - tstart) / 1000);
+        // if ((tend - tlastReport) < 1000 && finishCounter != fmapEntries.length) {
+        //   return;
+        // }
+        // tlastReport = tend;
+        // const timeElapsed = Math.ceil((perf.now() - tstart) / 1000);
         // report
         for (let j = 0; j < this.initProgressCallback.length; ++j) {
           const progress = finishCounter / fmapEntries.length;
           let text = "Loading GPU shader modules[" + finishCounter + "/" + fmapEntries.length + "]: ";
-          text += Math.floor(progress * 100).toString() + "% completed, "
-          text += timeElapsed + " secs elapsed.";
+          text += Math.floor(progress * 100).toString() + "% completed."
+          // text += timeElapsed + " secs elapsed.";
           this.initProgressCallback[j]({
             progress: progress,
-            timeElapsed: timeElapsed,
+            // timeElapsed: timeElapsed,
             cacheOnly: false,
             text: text
           });
@@ -2034,70 +2034,70 @@ export class Instance implements Disposable {
   /** Register global packed functions needed by the backend to the env. */
   private registerEnvGlobalPackedFuncs(): void {
     // Register the timer function to enable the time_evaluator.
-    const perf = compact.getPerformance();
+    // const perf = compact.getPerformance();
 
     // Helper function to time the finvoke
-    const timeExecution = async (
-      finvoke: PackedFunc,
-      dev: DLDevice,
-      nstep: number,
-      repeat: number,
-      minRepeatMs: number,
-      limitZeroTimeIterations: number,
-      cooldownIntervalMs: number,
-      repeatsToCooldown: number
-    ): Promise<Uint8Array> => {
-      // detach and explicit dispose when tasks is fullfilled
-      // the promise will immediately return and we need to makesure
-      // finvoke do not get recycled.
-      this.ctx.detachFromCurrentScope(finvoke);
+    // const timeExecution = async (
+    //   finvoke: PackedFunc,
+    //   dev: DLDevice,
+    //   nstep: number,
+    //   repeat: number,
+    //   minRepeatMs: number,
+    //   limitZeroTimeIterations: number,
+    //   cooldownIntervalMs: number,
+    //   repeatsToCooldown: number
+    // ): Promise<Uint8Array> => {
+    //   // detach and explicit dispose when tasks is fullfilled
+    //   // the promise will immediately return and we need to makesure
+    //   // finvoke do not get recycled.
+    //   this.ctx.detachFromCurrentScope(finvoke);
 
-      finvoke(this.scalar(1, "int32"));
-      await dev.sync();
-      const result = [];
-      let setupNumber: number = nstep;
+    //   finvoke(this.scalar(1, "int32"));
+    //   await dev.sync();
+    //   const result = [];
+    //   let setupNumber: number = nstep;
 
-      for (let i = 0; i < repeat; ++i) {
-        let durationMs = 0.0;
-        let absoluteZeroTimes = 0;
-        do {
-          if (durationMs > 0.0) {
-            const golden_ratio = 1.618;
-            setupNumber = Math.floor(
-              Math.max(minRepeatMs / (durationMs / setupNumber) + 1, setupNumber * golden_ratio)
-            );
-          }
-          const tstart: number = perf.now();
-          finvoke(this.scalar(setupNumber, "int32"));
-          await dev.sync();
-          const tend: number = perf.now();
+    //   for (let i = 0; i < repeat; ++i) {
+    //     // let durationMs = 0.0;
+    //     let absoluteZeroTimes = 0;
+    //     do {
+    //       if (durationMs > 0.0) {
+    //         const golden_ratio = 1.618;
+    //         setupNumber = Math.floor(
+    //           Math.max(minRepeatMs / (durationMs / setupNumber) + 1, setupNumber * golden_ratio)
+    //         );
+    //       }
+    //       // const tstart: number = perf.now();
+    //       finvoke(this.scalar(setupNumber, "int32"));
+    //       await dev.sync();
+    //       // const tend: number = perf.now();
 
-          durationMs = tend - tstart;
-          if (durationMs === 0) {
-            absoluteZeroTimes++;
-          }
-        } while (durationMs < minRepeatMs && absoluteZeroTimes < limitZeroTimeIterations);
-        const speed = durationMs / setupNumber / 1000;
-        result.push(speed);
-        if (cooldownIntervalMs > 0.0 && (i % repeatsToCooldown) === 0) {
-          await new Promise(r => setTimeout(r, cooldownIntervalMs));
-        }
-      }
-      const ret = new Float64Array(result.length);
-      ret.set(result);
+    //       // durationMs = tend - tstart;
+    //       if (durationMs === 0) {
+    //         absoluteZeroTimes++;
+    //       }
+    //     } while (durationMs < minRepeatMs && absoluteZeroTimes < limitZeroTimeIterations);
+    //     const speed = durationMs / setupNumber / 1000;
+    //     result.push(speed);
+    //     if (cooldownIntervalMs > 0.0 && (i % repeatsToCooldown) === 0) {
+    //       await new Promise(r => setTimeout(r, cooldownIntervalMs));
+    //     }
+    //   }
+    //   const ret = new Float64Array(result.length);
+    //   ret.set(result);
 
-      // dispose finvoke
-      finvoke.dispose();
-      return new Uint8Array(ret.buffer);
-    };
+    //   // dispose finvoke
+    //   finvoke.dispose();
+    //   return new Uint8Array(ret.buffer);
+    // };
 
-    const addOne = async (x: number): Promise<number> => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return x + 1;
-    };
+    // const addOne = async (x: number): Promise<number> => {
+    //   await new Promise(resolve => setTimeout(resolve, 100));
+    //   return x + 1;
+    // };
 
-    this.registerAsyncServerFunc("wasm.TimeExecution", timeExecution);
-    this.registerAsyncServerFunc("testing.asyncAddOne", addOne);
+    // this.registerAsyncServerFunc("wasm.TimeExecution", timeExecution);
+    // this.registerAsyncServerFunc("testing.asyncAddOne", addOne);
   }
 
   private createPackedFuncFromCFunc(
