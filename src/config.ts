@@ -20,8 +20,8 @@ export interface ChatConfig {
   tokenizer_files: Array<string>;
   conv_config?: Partial<ConvTemplateConfig>;
   conv_template: string;
-  // [aiMessage, userMessage][]
-  conversationHistory?: Array<[string, string]>;
+  // [userMessage, aiMessage][]
+  conversation_history?: Array<[string, string]>;
   // additional metadata
   mean_gen_len: number;
   shift_fill_factor: number;

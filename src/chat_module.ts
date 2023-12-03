@@ -153,9 +153,9 @@ export class ChatModule implements ChatInterface {
 
     // const tend = performance.now();
 
-    // add existing conversation for context
-    if (config.conversationHistory && config.conversationHistory.length > 0) {
-      await this.getPipeline().prefillStepConversation(config.conversationHistory);
+    // add existing conversation to context
+    if (config.conversation_history && config.conversation_history.length > 0) {
+      await this.getPipeline().prefillStepConversation(config.conversation_history);
     }
   
     if (this.initProgressCallback !== undefined) {

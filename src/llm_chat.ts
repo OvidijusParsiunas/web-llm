@@ -195,11 +195,11 @@ export class LLMChatPipeline {
   /**
    * Add and process existing messages for future input context
    */
-  async prefillStepConversation(conversationHistory: Required<ChatConfig>['conversationHistory']): Promise<void> {
+  async prefillStepConversation(conversation_history: Required<ChatConfig>['conversation_history']): Promise<void> {
     this.prefillCleanup();
   
     const conversation = this.conversation;
-    conversationHistory.forEach((history) => {
+    conversation_history.forEach((history) => {
       if (history.length === 2) {
         conversation.appendMessage(conversation.config.roles[0], history[0]);        
         conversation.appendMessage(conversation.config.roles[1], history[1]);        
