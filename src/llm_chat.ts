@@ -253,11 +253,11 @@ export class LLMChatPipeline {
     this.stopTriggered = false;
   }
 
-  private processTokens(tokens: number[]) {
+  private processTokens(promptTokens: number[]) {
     this.tvm.beginScope();
 
     let newSeqLen = this.filledKVCacheLength;
-    const tokenLen = tokens.length;
+    const tokenLen = promptTokens.length;
     let logits = this.tvm.empty([1, 1], "int32", this.device);  // Dummy value to avoid type error
     if (this.prefillChunkSize != -1) {
       // Use prefill chunking regardless whether we use SWA (see Mistral paper figure 3)
@@ -276,8 +276,8 @@ export class LLMChatPipeline {
       }
     } else {
       // Otherwise, prefill entire prompt at once
-      const inputData = this.tvm.empty([1, tokens.length], "int32", this.device);
-      inputData.copyFrom(tokens);
+      const inputData = this.tvm.empty([1, promptTokens.length], "int32", this.device);
+      inputData.copyFrom(promptTokens);
       newSeqLen += tokenLen;
       logits = this.tvm.detachFromCurrentScope(
         this.forward(inputData, newSeqLen)
