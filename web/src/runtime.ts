@@ -1000,7 +1000,11 @@ export class ArtifactCache {
     let result: Response;
     if (responseContent) {
       result = new Response(responseContent);
-      await this.cache.put(request, result.clone()); // .clone prevents error for re-reading same body stream
+      try {
+        await this.cache.put(request, result.clone()); // .clone prevents error for re-reading same body stream
+      } catch (e) {
+        console.error(e);
+      }
     }
     result ??= await this.cache.match(request);
     if (result === undefined) {
@@ -1013,7 +1017,8 @@ export class ArtifactCache {
     return result;
   }
 
-  async fetchFileWithCache(url: string, files?: File[]) {
+  async fetchFileWithCache(url: string, files?: File[], removeCache?: boolean) {
+    if (removeCache && this.cache) await this.cache.delete(new Request(url));
     const fileName = url.split('/').pop();
     let file = files?.find((file) => file.name === fileName);
     let data: ArrayBuffer;
@@ -1481,14 +1486,15 @@ export class Instance implements Disposable {
     device: DLDevice,
     cacheScope = "tvmjs",
     files?: File[],
+    removeCache?: boolean,
   ): Promise<File[]> {
     const artifactCache = new ArtifactCache(cacheScope);
     const jsonUrl = new URL("ndarray-cache.json", ndarrayCacheUrl).href;
-    const {file, data: list} = await artifactCache.fetchFileWithCache(jsonUrl, files);
+    const {file, data: list} = await artifactCache.fetchFileWithCache(jsonUrl, files, removeCache);
 
     const responseFiles = await this.fetchNDArrayCacheInternal(
       ndarrayCacheUrl,
-      list["records"] as Array<NDArrayShardEntry>, device, artifactCache, files);
+      list["records"] as Array<NDArrayShardEntry>, device, artifactCache, files, removeCache);
     this.cacheMetadata = { ...this.cacheMetadata, ...(list["metadata"] as Record<string, any>) };
     return [file, ...responseFiles];
   }
@@ -1506,7 +1512,8 @@ export class Instance implements Disposable {
     list: Array<NDArrayShardEntry>,
     device: DLDevice,
     artifactCache: ArtifactCache,
-    files?: File[]
+    files?: File[],
+    removeCache?: boolean,
     ): Promise<File[]> {
     // const perf = compact.getPerformance();
     // const tstart = perf.now();
@@ -1563,7 +1570,7 @@ export class Instance implements Disposable {
 
       let buffer;
       try {
-        const {file, data} = await artifactCache.fetchFileWithCache(dataUrl, files);
+        const {file, data} = await artifactCache.fetchFileWithCache(dataUrl, files, removeCache);
         buffer = data;
         responseFiles.push(file);
       } catch (err) {

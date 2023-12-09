@@ -30,6 +30,8 @@ export class ChatModule implements ChatInterface {
       appConfig = prebuiltAppConfig;
     }
 
+    const removeCache = !!appConfig?.remove_cache;
+
     const findModelRecord = () => {
       const matchedItem = appConfig?.model_list.find(
         item => item.local_id == localId
@@ -51,7 +53,7 @@ export class ChatModule implements ChatInterface {
 
     // load config
     const configUrl = new URL("mlc-chat-config.json", modelUrl).href;
-    const {file: mlcConfigFile, data: mlcConfigJSON} = await configCache.fetchFileWithCache(configUrl, filesArr);
+    const {file: mlcConfigFile, data: mlcConfigJSON} = await configCache.fetchFileWithCache(configUrl, filesArr, removeCache);
     responseFiles.push(mlcConfigFile);
     
     const config = {...mlcConfigJSON, ...chatOpts} as ChatConfig;
@@ -80,7 +82,7 @@ export class ChatModule implements ChatInterface {
         return await fetch(new URL(wasmUrl, baseUrl).href);
       } else {
         // use cache
-        const {file} = await wasmCache.fetchFileWithCache(wasmUrl, filesArr);
+        const {file} = await wasmCache.fetchFileWithCache(wasmUrl, filesArr, removeCache);
         responseFiles.push(file);
         return file;
       }
@@ -144,9 +146,9 @@ export class ChatModule implements ChatInterface {
     }
 
     tvm.initWebGPU(gpuDetectOutput.device);
-    const {tokenizer, file} = await this.asyncLoadTokenizer(modelUrl, config, filesArr);
+    const {tokenizer, file} = await this.asyncLoadTokenizer(modelUrl, config, filesArr, removeCache);
     responseFiles.push(file);
-    const resultFiles = await tvm.fetchNDArrayCache(modelUrl, tvm.webgpu(), "webllm/model", filesArr);
+    const resultFiles = await tvm.fetchNDArrayCache(modelUrl, tvm.webgpu(), "webllm/model", filesArr, removeCache);
     responseFiles = responseFiles.concat(resultFiles)
     this.pipeline = new LLMChatPipeline(tvm, tokenizer, config);
     await this.pipeline?.asyncLoadWebGPUPipelines();
@@ -254,15 +256,16 @@ export class ChatModule implements ChatInterface {
     baseUrl: string,
     config: ChatConfig,
     files?: File[],
+    removeCache?: boolean,
   ): Promise<{tokenizer: Tokenizer, file: File}> {
     const modelCache = new tvmjs.ArtifactCache("webllm/model");
     if (config.tokenizer_files.includes("tokenizer.model")) {
       const url = new URL("tokenizer.model", baseUrl).href;
-      const {file, data} = await modelCache.fetchFileWithCache(url, files);
+      const {file, data} = await modelCache.fetchFileWithCache(url, files, removeCache);
       return {tokenizer: await Tokenizer.fromSentencePiece(data), file};
     } else if (config.tokenizer_files.includes("tokenizer.json")) {
       const url = new URL("tokenizer.json", baseUrl).href;
-      const {file, data} = await modelCache.fetchFileWithCache(url, files);
+      const {file, data} = await modelCache.fetchFileWithCache(url, files, removeCache);
       return {tokenizer: await Tokenizer.fromJSON(data), file};
     }
     throw Error("Cannot handle tokenizer files " + config.tokenizer_files)

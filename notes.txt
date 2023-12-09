@@ -4,5 +4,27 @@ npm run build
 
 /examples/next-simple-chat npm run dev
 
+
+Strategy to sync the fork:
+
+# Add a new remote upstream repository (optional)
+git remote add upstream https://github.com/mlc-ai/web-llm.git
+
+# Sync your fork
+git fetch upstream
+git checkout main
+git merge upstream/main
+
+
+For tvm_home:
+
+Open up the project in a new vscode session.
+Git pull and merge changes
+delete the web folder
+create new web folder
+
+
+Other Info:
+
 require("perf_hooks") has been commented out because it causes the following error when this component is used in apps like React:
 Module not found: Error: Can't resolve 'perf_hooks' in '/Users/ovidijusparsiunas/Desktop/ai-chat/example-servers/ui/node_modules/deep-chat-web-llm/lib'
