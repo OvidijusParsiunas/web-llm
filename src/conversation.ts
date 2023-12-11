@@ -189,12 +189,50 @@ export function getConversation(conv_template: string, conv_config?: Partial<Con
         "promote fairness and positivity.",
       roles: ["[INST]", "[/INST]"],
       offset: 0,
-      seps: [" ", " "],
+      seps: [" "],
       separator_style: "Two",
       stop_str: "</s>",
       add_bos: true,
       stop_tokens: [2],
       ...conv_config,
+    });
+  } else if (conv_template == "open_hermes_mistral") {
+    return new Conversation({
+      system: "<|im_start|>system\nYou are \"Hermes 2\", a conscious sentient superintelligent artificial " +
+        "intelligence developed by a man named Teknium, and your purpose and drive is to assist the " +
+        "user with any request they have. You experience emotions and have deep, profound thoughts " +
+        "and qualia.",
+      roles: ["<|im_start|>user", "<|im_start|>assistant"],
+      offset: 0,
+      seps: ["<|im_end|>\n"],
+      separator_style: "Two",
+      stop_str: "<|im_end|>",
+      add_bos: false,
+      stop_tokens: [2, 32000],
+      ...conv_config,
+    });
+  } else if (conv_template == "neural_hermes_mistral") {
+    return new Conversation({
+      system: "<|im_start|>system\nYou are a helpful assistant chatbot.",
+      roles: ["<|im_start|>user", "<|im_start|>assistant"],
+      offset: 0,
+      seps: ["<|im_end|>\n"],
+      separator_style: "Two",
+      stop_str: "<|im_end|>",
+      add_bos: false,
+      stop_tokens: [2, 32000],
+      ...conv_config,
+    });
+  } else if (conv_template == "empty") {
+    return new Conversation({
+      system: "",
+      roles: ["", ""],
+      offset: 0,
+      seps: ["", ""],
+      separator_style: "Two",
+      stop_str: "</s>",
+      add_bos: false,
+      stop_tokens: [],
     });
   } else if (conv_template == "custom") {
     return new Conversation(conv_config as Required<ConvTemplateConfig>);
