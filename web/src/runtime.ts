@@ -1023,7 +1023,7 @@ export class ArtifactCache {
     let file = files?.find((file) => file.name === fileName);
     let data: ArrayBuffer;
     const response = await this.fetchWithCache(url, file);
-    if (fileName.endsWith('.json')) {
+    if (fileName.endsWith('.json') && !fileName.includes('tokenizer')) {
       data = await response.json();
       file ??= new File([data], fileName, {type: "application/json"});
     } else {
