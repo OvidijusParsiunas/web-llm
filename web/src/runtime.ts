@@ -1017,12 +1017,26 @@ export class ArtifactCache {
     return result;
   }
 
-  async fetchFileWithCache(url: string, files?: File[], removeCache?: boolean) {
-    if (removeCache && this.cache) await this.cache.delete(new Request(url));
+  async fetchNoCache(url: string, responseContent?: BodyInit) {
+    const request = new Request(url);
+    let result: Response;
+    if (responseContent) {
+      result = new Response(responseContent);
+    } else {
+      result = await fetch(request);
+    }
+    if (result === undefined) {
+      throw Error("Cannot fetch " + url);
+    }
+    return result;
+  }
+
+  async fetchFile(url: string, files?: File[], useCache = true) {
     const fileName = url.split('/').pop();
     let file = files?.find((file) => file.name === fileName);
     let data: ArrayBuffer;
-    const response = await this.fetchWithCache(url, file);
+    const response = useCache ?
+      await this.fetchWithCache(url, file) : await this.fetchNoCache(url, file);
     if (fileName.endsWith('.json') && !fileName.includes('tokenizer')) {
       data = await response.json();
       file ??= new File([data], fileName, {type: "application/json"});
@@ -1486,15 +1500,15 @@ export class Instance implements Disposable {
     device: DLDevice,
     cacheScope = "tvmjs",
     files?: File[],
-    removeCache?: boolean,
+    useCache?: boolean,
   ): Promise<File[]> {
     const artifactCache = new ArtifactCache(cacheScope);
     const jsonUrl = new URL("ndarray-cache.json", ndarrayCacheUrl).href;
-    const {file, data: list} = await artifactCache.fetchFileWithCache(jsonUrl, files, removeCache);
+    const {file, data: list} = await artifactCache.fetchFile(jsonUrl, files, useCache);
 
     const responseFiles = await this.fetchNDArrayCacheInternal(
       ndarrayCacheUrl,
-      list["records"] as Array<NDArrayShardEntry>, device, artifactCache, files, removeCache);
+      list["records"] as Array<NDArrayShardEntry>, device, artifactCache, files, useCache);
     this.cacheMetadata = { ...this.cacheMetadata, ...(list["metadata"] as Record<string, any>) };
     return [file, ...responseFiles];
   }
@@ -1513,7 +1527,7 @@ export class Instance implements Disposable {
     device: DLDevice,
     artifactCache: ArtifactCache,
     files?: File[],
-    removeCache?: boolean,
+    useCache?: boolean,
     ): Promise<File[]> {
     // const perf = compact.getPerformance();
     // const tstart = perf.now();
@@ -1538,7 +1552,7 @@ export class Instance implements Disposable {
         text += " It can take a while when we first visit this page to populate the cache."
         text += " Later refreshes will become faster.";
         if (file) text = "Loading model from file[" + iter + "/" + list.length + "]: ";
-        if (cacheOnly) {
+        if (cacheOnly || file) {
           if (!file) text = "Loading model from cache[" + iter + "/" + list.length + "]: ";
           text += Math.ceil(fetchedBytes / (1024 * 1024)).toString() + "MB loaded. "
           text += Math.floor(fetchedBytes * 100 / totalBytes).toString() + "% completed."
@@ -1570,7 +1584,7 @@ export class Instance implements Disposable {
 
       let buffer;
       try {
-        const {file, data} = await artifactCache.fetchFileWithCache(dataUrl, files, removeCache);
+        const {file, data} = await artifactCache.fetchFile(dataUrl, files, useCache);
         buffer = data;
         responseFiles.push(file);
       } catch (err) {

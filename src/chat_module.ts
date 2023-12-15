@@ -30,7 +30,7 @@ export class ChatModule implements ChatInterface {
       appConfig = prebuiltAppConfig;
     }
 
-    const removeCache = !!appConfig?.remove_cache;
+    const useCache = !!appConfig?.use_cache;
 
     const findModelRecord = () => {
       const matchedItem = appConfig?.model_list.find(
@@ -53,7 +53,7 @@ export class ChatModule implements ChatInterface {
 
     // load config
     const configUrl = new URL("mlc-chat-config.json", modelUrl).href;
-    const {file: mlcConfigFile, data: mlcConfigJSON} = await configCache.fetchFileWithCache(configUrl, filesArr, removeCache);
+    const {file: mlcConfigFile, data: mlcConfigJSON} = await configCache.fetchFile(configUrl, filesArr, useCache);
     responseFiles.push(mlcConfigFile);
     
     const config = {...mlcConfigJSON, ...chatOpts} as ChatConfig;
@@ -69,6 +69,7 @@ export class ChatModule implements ChatInterface {
       throw Error("Cannot find wasm for " + config.model_lib + " in supplied libMap");
     }
 
+    // if the "webllm/wasm" scope changes - need to change it in the clearCache method in UI
     // load tvm wasm
     const wasmCache = new tvmjs.ArtifactCache("webllm/wasm");
     const wasmUrl = findWasmUrl();
@@ -82,7 +83,7 @@ export class ChatModule implements ChatInterface {
         return await fetch(new URL(wasmUrl, baseUrl).href);
       } else {
         // use cache
-        const {file} = await wasmCache.fetchFileWithCache(wasmUrl, filesArr, removeCache);
+        const {file} = await wasmCache.fetchFile(wasmUrl, filesArr, useCache);
         responseFiles.push(file);
         return file;
       }
@@ -146,9 +147,10 @@ export class ChatModule implements ChatInterface {
     }
 
     tvm.initWebGPU(gpuDetectOutput.device);
-    const {tokenizer, file} = await this.asyncLoadTokenizer(modelUrl, config, filesArr, removeCache);
+    const {tokenizer, file} = await this.asyncLoadTokenizer(modelUrl, config, filesArr, useCache);
     responseFiles.push(file);
-    const resultFiles = await tvm.fetchNDArrayCache(modelUrl, tvm.webgpu(), "webllm/model", filesArr, removeCache);
+    // if the "webllm/model" scope changes - need to change it in the clearCache method in UI
+    const resultFiles = await tvm.fetchNDArrayCache(modelUrl, tvm.webgpu(), "webllm/model", filesArr, useCache);
     responseFiles = responseFiles.concat(resultFiles)
     this.pipeline = new LLMChatPipeline(tvm, tokenizer, config);
     await this.pipeline?.asyncLoadWebGPUPipelines();
@@ -256,12 +258,12 @@ export class ChatModule implements ChatInterface {
     baseUrl: string,
     config: ChatConfig,
     files?: File[],
-    removeCache?: boolean,
+    useCache?: boolean,
   ): Promise<{tokenizer: Tokenizer, file: File}> {
     const modelCache = new tvmjs.ArtifactCache("webllm/model");
     if (config.tokenizer_files.includes("tokenizer.json")) {
       const url = new URL("tokenizer.json", baseUrl).href;
-      const {file, data} = await modelCache.fetchFileWithCache(url, files, removeCache);
+      const {file, data} = await modelCache.fetchFile(url, files, useCache);
       return {tokenizer: await Tokenizer.fromJSON(data), file};
     } else if (config.tokenizer_files.includes("tokenizer.model")) {
       this.logger("Using `tokenizer.model` since we cannot locate `tokenizer.json`.\n" +
@@ -270,7 +272,7 @@ export class ChatModule implements ChatInterface {
         "Consider converting `tokenizer.model` to `tokenizer.json` by compiling the model " +
         "with MLC again, or see if MLC's huggingface provides this file.");
       const url = new URL("tokenizer.model", baseUrl).href;
-      const {file, data} = await modelCache.fetchFileWithCache(url, files, removeCache);      
+      const {file, data} = await modelCache.fetchFile(url, files, useCache);      
       return {tokenizer: await Tokenizer.fromSentencePiece(data), file};
     }
     throw Error("Cannot handle tokenizer files " + config.tokenizer_files)
