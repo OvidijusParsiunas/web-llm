@@ -4,6 +4,16 @@ npm run build
 
 /examples/next-simple-chat npm run dev
 
+When publishing:
+
+first build and publish
+
+then uncomment the cdn window code in src/index.ts
+build
+recomment
+commit and push
+finished
+
 
 Strategy to sync the fork:
 

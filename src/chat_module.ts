@@ -30,7 +30,7 @@ export class ChatModule implements ChatInterface {
       appConfig = prebuiltAppConfig;
     }
 
-    const useCache = !!appConfig?.use_cache;
+    const useCache = appConfig?.use_cache;
 
     const findModelRecord = () => {
       const matchedItem = appConfig?.model_list.find(
