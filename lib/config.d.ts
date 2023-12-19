@@ -15,8 +15,6 @@ export interface ConvTemplateConfig {
  * Config of one chat model
  */
 export interface ChatConfig {
-    local_id: string;
-    model_lib: string;
     tokenizer_files: Array<string>;
     conv_config?: Partial<ConvTemplateConfig>;
     conv_template: string;
@@ -27,22 +25,31 @@ export interface ChatConfig {
     top_p: number;
     temperature: number;
 }
+/**
+ * Information for a model.
+ * @param model_url: the huggingface link to download the model weights.
+ * @param local_id: what we call the model.
+ * @param model_lib_url: link to the model library (wasm file) the model uses.
+ * @param required_features: feature needed to run this model (e.g. shader-f16).
+ */
 export interface ModelRecord {
     model_url: string;
     local_id: string;
+    model_lib_url: string;
     required_features?: Array<string>;
 }
 /**
  * Extra configuration that can be
- * passed to the load
+ * passed to the load.
+ *
+ * @param model_list: models to be used.
  */
 export interface AppConfig {
     model_list: Array<ModelRecord>;
-    model_lib_map: Record<string, string>;
     use_cache?: boolean;
 }
 /**
- * default libmap used in prebuilt
+ * Default models and model library mapping to be used if unspecified.
  */
 export declare const prebuiltAppConfig: AppConfig;
 //# sourceMappingURL=config.d.ts.map
