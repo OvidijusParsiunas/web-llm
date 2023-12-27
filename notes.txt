@@ -6,7 +6,7 @@ npm run build
 
 When publishing:
 
-first build and publish
+first build and publish (without the cdn code)
 
 then uncomment the cdn window code in src/index.ts
 build
