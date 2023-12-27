@@ -16,7 +16,8 @@ export declare class LLMChatPipeline {
     private filledKVCacheLength;
     private bosTokenId;
     private maxWindowLength;
-    private slidingWindow;
+    private slidingWindowSize;
+    private attentionSinkSize;
     private prefillChunkSize;
     private resetStatsPerPrefill;
     private stopStr;
@@ -26,6 +27,8 @@ export declare class LLMChatPipeline {
     private stopTriggered;
     private appearedTokens;
     private conversation;
+    private sinkTriggered;
+    private slidingWindowCacheOffset;
     private decodingTotalTime;
     private decodingTotalTokens;
     private prefillTotalTime;
