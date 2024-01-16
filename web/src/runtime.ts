@@ -1963,10 +1963,15 @@ export class Instance implements Disposable {
       // need to keep it alive until callback is fulfilled.
       const callback = this.detachFromCurrentScope(args[args.length - 1] as PackedFunc);
       const promise: Promise<any> = func(...fargs);
-      promise.then((rv: any) => {
+      const onFulfilled = (rv: any) => {
         callback(this.scalar(AsyncCallbackCode.kReturn, "int32"), rv);
         callback.dispose();
-      });
+      };
+      const onRejected = (reason: any) => {
+        callback(this.scalar(AsyncCallbackCode.kException, "int32"), reason.toString());
+        callback.dispose();
+      };
+      promise.then(onFulfilled, onRejected);
     };
     this.registerFunc("__async." + name, asyncVariant, override);
   }
@@ -2277,7 +2282,26 @@ export class Instance implements Disposable {
         jsArgs.push(this.retValueToJS(valuePtr, tcode, true));
       }
 
-      const rv = func(...jsArgs);
+      let rv: any;
+      try {
+        rv = func(...jsArgs);
+      } catch (error) {
+        // error handling
+        // store error via SetLastError
+        this.ctx.endScope();
+        const errMsg = "JSCallbackError: " + error.message;
+        const stack = lib.getOrAllocCallStack();
+        const errMsgOffset = stack.allocRawBytes(errMsg.length + 1);
+        stack.storeRawBytes(errMsgOffset, StringToUint8Array(errMsg));
+        stack.commitToWasmMemory();
+        (this.lib.exports.TVMAPISetLastError as ctypes.FTVMAPISetLastError)(
+          stack.ptrFromOffset(errMsgOffset)
+        );
+        this.lib.recycleCallStack(stack);
+        return -1;
+      }
+
+      // normal return path
       // recycle all js object value in function unless we want to retain them.
       this.ctx.endScope();
 
