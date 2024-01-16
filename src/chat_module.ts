@@ -311,10 +311,6 @@ export class ChatRestModule implements ChatInterface {
     throw new Error("Method not implemented.");
   }
 
-  async getMaxStorageBufferBindingSize(): Promise<number> {
-    throw new Error("Method not implemented.");
-  }
-
   async unload() {
     throw new Error("Method not supported.");
   }
