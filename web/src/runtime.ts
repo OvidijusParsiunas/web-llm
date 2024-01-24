@@ -1053,7 +1053,8 @@ export class ArtifactCache {
     }
     return this.cache.keys()
       .then(requests => requests.map(request => request.url))
-      .then(cacheKeys => keys.every(key => cacheKeys.indexOf(key) !== -1));
+      .then(cacheKeys => keys.every(key => cacheKeys.indexOf(key) !== -1))
+      .catch(err => false);
   }
 }
 
@@ -1493,7 +1494,7 @@ export class Instance implements Disposable {
    * @param ndarrayCacheUrl The cache url.
    * @param device The device to be fetched to.
    * @param cacheScope The scope identifier of the cache
-   * @returns files fetched from cache
+   * @returns The meta data
    */
   async fetchNDArrayCache(
     ndarrayCacheUrl: string,
