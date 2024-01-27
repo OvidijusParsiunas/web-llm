@@ -13,7 +13,7 @@ interface GenerateProgressCallbackParams {
     step: number;
     currentMessage: string;
 }
-type MessageContent = GenerateProgressCallbackParams | ReloadParams | GenerateParams | InitProgressReport | string | null;
+type MessageContent = GenerateProgressCallbackParams | ReloadParams | GenerateParams | InitProgressReport | string | null | number;
 /**
  * Worker handler that can be used in a WebWorker
  *
@@ -54,6 +54,8 @@ export declare class ChatWorkerClient implements ChatInterface {
     setInitProgressCallback(initProgressCallback: InitProgressCallback): void;
     private getPromise;
     reload(localIdOrUrl: string, chatOpts?: ChatOptions, appConfig?: AppConfig): Promise<void>;
+    getMaxStorageBufferBindingSize(): Promise<number>;
+    getGPUVendor(): Promise<string>;
     generate(input: string, progressCallback?: GenerateProgressCallback, streamInterval?: number): Promise<string>;
     runtimeStatsText(): Promise<string>;
     interruptGenerate(): void;

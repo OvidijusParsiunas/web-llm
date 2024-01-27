@@ -70,5 +70,15 @@ export interface ChatInterface {
      * Reset the current chat session by clear all memories.
      */
     resetChat: () => Promise<void>;
+    /**
+     * Returns the device's maxStorageBufferBindingSize, can be used to guess whether the device
+     * has limited resources like an Android phone.
+     */
+    getMaxStorageBufferBindingSize(): Promise<number>;
+    /**
+     * Returns the device's gpu vendor (e.g. arm, qualcomm, apple) if available. Otherwise return
+     * an empty string.
+     */
+    getGPUVendor(): Promise<string>;
 }
 //# sourceMappingURL=types.d.ts.map

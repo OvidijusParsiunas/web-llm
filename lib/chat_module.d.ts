@@ -8,6 +8,7 @@ export declare class ChatModule implements ChatInterface {
     private pipeline?;
     private initProgressCallback?;
     private interruptSignal;
+    private deviceLostIsError;
     setInitProgressCallback(initProgressCallback: InitProgressCallback): void;
     reload(localId: string, chatOpts?: ChatOptions, appConfig?: AppConfig, files?: File[] | FileList): Promise<File[]>;
     generate(input: string, progressCallback?: GenerateProgressCallback, streamInterval?: number): Promise<string>;
@@ -15,6 +16,8 @@ export declare class ChatModule implements ChatInterface {
     runtimeStatsText(): Promise<string>;
     resetChat(): Promise<void>;
     unload(): Promise<void>;
+    getMaxStorageBufferBindingSize(): Promise<number>;
+    getGPUVendor(): Promise<string>;
     /**
      * @returns Whether the generation stopped.
      */
@@ -45,6 +48,8 @@ export declare class ChatRestModule implements ChatInterface {
     private initProgressCallback?;
     setInitProgressCallback(initProgressCallback: InitProgressCallback): void;
     reload(localId: string, chatOpts?: ChatOptions, appConfig?: AppConfig): Promise<File[]>;
+    getMaxStorageBufferBindingSize(): Promise<number>;
+    getGPUVendor(): Promise<string>;
     unload(): Promise<void>;
     interruptGenerate(): Promise<void>;
     generate(input: string, progressCallback?: GenerateProgressCallback, streamInterval?: number): Promise<string>;
