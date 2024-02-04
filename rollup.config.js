@@ -11,8 +11,7 @@ export default {
             exports: 'named',
             format: 'es',
             sourcemap: true,
-            globals: {'ws': 'ws',
-                      'perf_hooks': 'perf_hooks'}
+            globals: {'ws': 'ws'}
         }
     ],
     plugins: [
