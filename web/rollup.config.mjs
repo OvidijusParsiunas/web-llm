@@ -28,8 +28,7 @@ export default {
     format: 'umd',
     name: 'tvmjs',
     exports: 'named',
-    globals: {'ws': 'ws',
-              'perf_hooks': 'perf_hooks'}
+    globals: {'ws': 'ws'}
   },
   plugins: [
     ignore(["fs", "path", "crypto"]),
@@ -40,5 +39,5 @@ export default {
       clean: true
     })
   ],
-  external: ['ws', 'perf_hooks']
+  external: ['ws']
 };
